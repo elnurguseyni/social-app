@@ -3,5 +3,21 @@ services:
     build: .
     ports:
       - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql://social_user:local_password@db:5432/social_db
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: social_db
+      POSTGRES_USER: social_user
+      POSTGRES_PASSWORD: local_password
+    ports:
+      - "5432:5432"
     volumes:
-      - ./social.db:/app/social.db
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

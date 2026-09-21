@@ -8,6 +8,11 @@ load_dotenv()
 
 DATABASE = Path(__file__).with_name("social.db")
 
+DATABASE_URL=os.environ.get(
+    "DATABASE_URL",
+    "postgresql://social_user:local_password@localhost:5432/social_db",
+),
+
 
 def create_app(test_config=None):
     app = Flask(__name__)
