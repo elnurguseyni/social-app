@@ -51,3 +51,33 @@ def test_user_can_register_and_post(client):
     response = client.get("/")
     assert b"My first authenticated post" in response.data
     assert b"casey" in response.data
+
+def test_user_can_like_and_comment(client):
+    client.post(
+        "/register",
+        data={
+            "username": "taylor",
+            "email": "taylor@example.com",
+            "password": "secure-pass-123",
+        },
+    )
+
+    client.post(
+        "/posts",
+        data={"content": "A post to interact with"},
+    )
+
+    like_response = client.post("/posts/1/like")
+    assert like_response.status_code == 302
+
+    comment_response = client.post(
+        "/posts/1/comments",
+        data={"content": "Nice post!"},
+    )
+    assert comment_response.status_code == 302
+
+    response = client.get("/")
+
+    assert b"1 likes" in response.data
+    assert b"Nice post!" in response.data
+    assert b"taylor" in response.data
