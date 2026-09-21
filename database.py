@@ -177,6 +177,61 @@ def get_like_count(post_id):
     connection.close()
     return count
 
+def migrate_comments_table():
+    connection = get_connection()
+
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
+            post_id INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (post_id) REFERENCES posts (id)
+        )
+        """
+    )
+
+    connection.commit()
+    connection.close()
+
+def add_comment(content, user_id, post_id):
+    connection = get_connection()
+
+    cursor = connection.execute(
+        """
+        INSERT INTO comments (content, user_id, post_id)
+        VALUES (?, ?, ?)
+        """,
+        (content, user_id, post_id),
+    )
+
+    connection.commit()
+    comment_id = cursor.lastrowid
+    connection.close()
+
+    return comment_id
+
+def get_comments(post_id):
+    connection = get_connection()
+    connection.row_factory = sqlite3.Row
+
+    comments = connection.execute(
+        """
+        SELECT comments.content, users.username
+        FROM comments
+        JOIN users ON comments.user_id = users.id
+        WHERE comments.post_id = ?
+        ORDER BY comments.created_at
+        """,
+        (post_id,),
+    ).fetchall()
+
+    connection.close()
+    return comments
+
 def initialize_database():
     connection = get_connection()
 
@@ -213,3 +268,4 @@ if __name__ == "__main__":
     initialize_database()
     migrate_users_table()
     migrate_likes_table()
+    migrate_comments_table()

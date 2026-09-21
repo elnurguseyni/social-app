@@ -9,6 +9,8 @@ from database import (
     get_users,
     like_post,
     unlike_post,
+    add_comment,
+    get_comments,
     get_like_count,
 )
 import sqlite3
@@ -24,7 +26,32 @@ def home():
     user_id = session.get("user_id")
     posts = get_posts(user_id)
 
-    return render_template("index.html", users=users, posts=posts)
+    comments_by_post = {
+        post["id"]: get_comments(post["id"])
+        for post in posts
+    }
+    return render_template(
+        "index.html",
+        users=users,
+        posts=posts,
+        comments_by_post=comments_by_post,
+    )
+
+@app.route("/posts/<int:post_id>/comments", methods=["POST"])
+def create_comment(post_id):
+    user_id = session.get("user_id")
+
+    if user_id is None:
+        return redirect(url_for("login"))
+
+    content = request.form["content"].strip()
+
+    if not content:
+        return "Comment content is required", 400
+
+    add_comment(content, user_id, post_id)
+
+    return redirect(url_for("home"))
 
 @app.route("/posts", methods=["POST"])
 def create_post():
