@@ -1,20 +1,37 @@
 import pytest
 
 from app import create_app
-from database import initialize_database
+from database import get_connection, initialize_database
 
 
 @pytest.fixture
-def client(tmp_path):
+def client():
     app = create_app(
         {
             "TESTING": True,
-            "DATABASE": str(tmp_path / "test.db"),
+            "DATABASE_URL": (
+                "postgresql://social_user:local_password"
+                "@localhost:5432/social_test"
+            ),
         }
     )
 
     with app.app_context():
         initialize_database()
+
+        connection = get_connection()
+        connection.execute(
+            """
+            TRUNCATE TABLE
+                likes,
+                comments,
+                posts,
+                users
+            RESTART IDENTITY CASCADE
+            """
+        )
+        connection.commit()
+        connection.close()
 
     with app.test_client() as client:
         yield client
