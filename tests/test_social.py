@@ -1,20 +1,23 @@
 import pytest
 
+from app import create_app
 from database import initialize_database
-from social import app
 
 
 @pytest.fixture
 def client(tmp_path):
-    app.config["TESTING"] = True
-    app.config["DATABASE"] = str(tmp_path / "test.db")
+    app = create_app(
+        {
+            "TESTING": True,
+            "DATABASE": str(tmp_path / "test.db"),
+        }
+    )
 
     with app.app_context():
         initialize_database()
 
     with app.test_client() as client:
         yield client
-
 
 def test_anonymous_user_cannot_post(client):
     response = client.post(
