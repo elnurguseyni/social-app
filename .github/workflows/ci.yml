@@ -6,19 +6,24 @@ on:
   pull_request:
     branches: [main]
 
-      - name: Create test database
-        env:
-          PGPASSWORD: local_password
-        run: |
-          psql \
-            -h localhost \
-            -U social_user \
-            -d social_db \
-            -c "CREATE DATABASE social_test;"
-
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: social_test
+          POSTGRES_USER: social_user
+          POSTGRES_PASSWORD: local_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U social_user -d social_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Check out repository
@@ -37,22 +42,3 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t social-app .
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: social_db
-          POSTGRES_USER: social_user
-          POSTGRES_PASSWORD: local_password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U social_user -d social_db"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
