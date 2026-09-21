@@ -25,6 +25,17 @@
         <article>
             <strong>{{ post['username'] }}</strong>
             <p>{{ post['content'] }}</p>
+            <p>{{ post['like_count'] }} likes</p>
+
+            {% if session.get("user_id") %}
+                <form method="post" action="{{ url_for('like', post_id=post['id']) }}">
+                    {% if post['is_liked'] %}
+                        <button type="submit">Unlike</button>
+                    {% else %}
+                        <button type="submit">Like</button>
+                    {% endif %}
+                </form>
+            {% endif %}
         </article>
     {% endfor %}
 </body>

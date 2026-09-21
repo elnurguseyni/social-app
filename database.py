@@ -1,13 +1,16 @@
 import sqlite3
 from pathlib import Path
 from werkzeug.security import generate_password_hash
-from flask import current_app
+from flask import current_app, has_app_context
 
 
 DATABASE = Path(__file__).with_name("social.db")
 
 def get_connection():
-    database_path = current_app.config.get("DATABASE", DATABASE)
+    if has_app_context():
+        database_path = current_app.config.get("DATABASE", DATABASE)
+    else:
+        database_path = DATABASE
 
     connection = sqlite3.connect(database_path, timeout=5)
     connection.execute("PRAGMA foreign_keys = ON")
@@ -27,17 +30,30 @@ def add_post(content, user_id):
 
     return post_id
 
-def get_posts():
+def get_posts(user_id=None):
     connection = get_connection()
     connection.row_factory = sqlite3.Row
 
     posts = connection.execute(
         """
-        SELECT posts.content, users.username
+        SELECT
+            posts.id,
+            posts.content,
+            users.username,
+            COUNT(likes.post_id) AS like_count,
+            EXISTS (
+                SELECT 1
+                FROM likes user_like
+                WHERE user_like.post_id = posts.id
+                AND user_like.user_id = ?
+            ) AS is_liked
         FROM posts
         JOIN users ON posts.user_id = users.id
+        LEFT JOIN likes ON posts.id = likes.post_id
+        GROUP BY posts.id
         ORDER BY posts.id
-        """
+        """,
+        (user_id,),
     ).fetchall()
 
     connection.close()
@@ -103,6 +119,64 @@ def get_user_by_email(email):
     connection.close()
     return user
 
+def migrate_likes_table():
+    connection = get_connection()
+
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS likes (
+            user_id INTEGER NOT NULL,
+            post_id INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, post_id),
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (post_id) REFERENCES posts (id)
+        )
+        """
+    )
+
+    connection.commit()
+    connection.close()
+
+def like_post(user_id, post_id):
+    connection = get_connection()
+
+    connection.execute(
+        """
+        INSERT OR IGNORE INTO likes (user_id, post_id)
+        VALUES (?, ?)
+        """,
+        (user_id, post_id),
+    )
+
+    connection.commit()
+    connection.close()
+
+def unlike_post(user_id, post_id):
+    connection = get_connection()
+
+    connection.execute(
+        """
+        DELETE FROM likes
+        WHERE user_id = ? AND post_id = ?
+        """,
+        (user_id, post_id),
+    )
+
+    connection.commit()
+    connection.close()
+
+def get_like_count(post_id):
+    connection = get_connection()
+
+    count = connection.execute(
+        "SELECT COUNT(*) FROM likes WHERE post_id = ?",
+        (post_id,),
+    ).fetchone()[0]
+
+    connection.close()
+    return count
+
 def initialize_database():
     connection = get_connection()
 
@@ -138,14 +212,4 @@ def get_or_create_user(username):
 if __name__ == "__main__":
     initialize_database()
     migrate_users_table()
-
-    user_id = get_or_create_user("jordan")
-    add_post("My first database-backed post", user_id)
-
-    for post in get_posts():
-        print(f"{post['username']}: {post['content']}")
-
-    print(f"Created account with ID {new_user_id}")
-
-    for post in get_posts():
-        print(f"{post['username']}: {post['content']}")
+    migrate_likes_table()

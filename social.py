@@ -7,6 +7,9 @@ from database import (
     get_posts,
     get_user_by_email,
     get_users,
+    like_post,
+    unlike_post,
+    get_like_count,
 )
 import sqlite3
 
@@ -18,10 +21,10 @@ app.config["SECRET_KEY"] = "development-secret-change-later"
 @app.route("/")
 def home():
     users = get_users()
-    posts = get_posts()
+    user_id = session.get("user_id")
+    posts = get_posts(user_id)
 
     return render_template("index.html", users=users, posts=posts)
-
 
 @app.route("/posts", methods=["POST"])
 def create_post():
@@ -36,6 +39,26 @@ def create_post():
         return "Post content is required", 400
 
     add_post(content, user_id)
+
+    return redirect(url_for("home"))
+
+
+@app.route("/posts/<int:post_id>/like", methods=["POST"])
+def like(post_id):
+    user_id = session.get("user_id")
+
+    if user_id is None:
+        return redirect(url_for("login"))
+
+    post = get_posts(user_id)
+    selected_post = next(
+        post for post in post if post["id"] == post_id
+    )
+
+    if selected_post["is_liked"]:
+        unlike_post(user_id, post_id)
+    else:
+        like_post(user_id, post_id)
 
     return redirect(url_for("home"))
 
