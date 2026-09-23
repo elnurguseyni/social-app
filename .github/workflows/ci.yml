@@ -10,6 +10,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+
     services:
       postgres:
         image: postgres:16
@@ -42,3 +46,59 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t social-app .
+    
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    concurrency:
+      group: deploy-social-app
+      cancel-in-progress: false
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      - name: Log in to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+        id: login-ecr
+
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --tag "$REGISTRY/social-app:$IMAGE_TAG" \
+            --tag "$REGISTRY/social-app:latest" \
+            --push .
+
+      - name: Deploy ECS service
+        run: |
+          aws ecs update-service \
+            --cluster social-app \
+            --service social-app \
+            --force-new-deployment \
+            --query 'service.serviceName' \
+            --output text
+
+      - name: Wait for ECS service to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster social-app \
+            --services social-app
