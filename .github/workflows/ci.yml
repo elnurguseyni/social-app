@@ -89,11 +89,40 @@ jobs:
             --tag "$REGISTRY/social-app:latest" \
             --push .
 
+      - name: Register immutable task definition
+        env:
+          IMAGE_URI: ${{ steps.login-ecr.outputs.registry }}/social-app:${{ github.sha }}
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition social-app \
+            --query taskDefinition \
+            > task-definition.json
+
+          jq --arg image "$IMAGE_URI" \
+            '.containerDefinitions[0].image = $image
+             | del(
+                 .taskDefinitionArn,
+                 .revision,
+                 .status,
+                 .requiresAttributes,
+                 .compatibilities,
+                 .registeredAt,
+                 .registeredBy
+               )' \
+            task-definition.json > new-task-definition.json
+
+          TASK_DEFINITION_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://new-task-definition.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          echo "TASK_DEFINITION_ARN=$TASK_DEFINITION_ARN" >> "$GITHUB_ENV"
+
       - name: Deploy ECS service
         run: |
           aws ecs update-service \
             --cluster social-app \
             --service social-app \
-            --force-new-deployment \
+            --task-definition "$TASK_DEFINITION_ARN" \
             --query 'service.serviceName' \
             --output text
