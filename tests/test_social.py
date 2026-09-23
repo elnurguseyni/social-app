@@ -124,3 +124,9 @@ def test_missing_profile_returns_404(client):
     response = client.get("/users/unknown-user")
 
     assert response.status_code == 404
+
+def test_health_check(client):
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.data == b"ok"

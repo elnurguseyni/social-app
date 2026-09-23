@@ -148,3 +148,6 @@ def register_routes(app):
             user=profile_data["user"],
             posts=profile_data["posts"],
         )
+    @app.route("/health")
+    def health():
+        return "ok", 200
