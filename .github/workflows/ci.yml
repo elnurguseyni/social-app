@@ -68,13 +68,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
       
       - name: Inspect OIDC claims
-        env:
-          OIDC_URL: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL }}
-          OIDC_TOKEN: ${{ env.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
         run: |
           response=$(curl -fsSL \
-            -H "Authorization: bearer $OIDC_TOKEN" \
-            "${OIDC_URL}&audience=sts.amazonaws.com")
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
 
           token=$(echo "$response" | jq -r '.value')
           payload=$(echo "$token" | cut -d. -f2)
@@ -84,8 +81,10 @@ jobs:
             payload="${payload}$(printf '=%.0s' $(seq 1 "$padding"))"
           fi
 
-          echo "$payload" | tr '_-' '/+' | base64 --decode | jq \
-            '{iss,sub,aud,repository,ref,job_workflow_ref}'
+          echo "$payload" \
+            | tr '_-' '/+' \
+            | base64 --decode \
+            | jq '{iss,sub,aud,repository,ref,job_workflow_ref}'
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
