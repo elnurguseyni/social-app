@@ -12,6 +12,7 @@ from database import (
     add_comment,
     get_comments,
     get_like_count,
+    get_user_profile
 )
 import sqlite3
 
@@ -134,3 +135,16 @@ def register_routes(app):
     def logout():
         session.clear()
         return redirect(url_for("home"))
+
+    @app.route("/users/<username>")
+    def profile(username):
+        profile_data = get_user_profile(username)
+
+        if profile_data is None:
+            return "User not found", 404
+
+        return render_template(
+            "profile.html",
+            user=profile_data["user"],
+            posts=profile_data["posts"],
+        )

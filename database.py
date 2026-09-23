@@ -237,6 +237,38 @@ def get_comments(post_id):
     connection.close()
     return comments
 
+def get_user_profile(username):
+    connection = get_connection()
+    try:
+        user = connection.execute(
+            """
+            SELECT id, username, email
+            FROM users
+            WHERE username = %s
+            """,
+            (username,),
+        ).fetchone()
+
+        if user is None:
+            return None
+
+        posts = connection.execute(
+            """
+            SELECT id, content
+            FROM posts
+            WHERE user_id = %s
+            ORDER BY id DESC
+            """,
+            (user["id"],),
+        ).fetchall()
+
+        return {
+            "user": user,
+            "posts": posts,
+        }
+    finally:
+        connection.close()
+
 def initialize_database():
     connection = get_connection()
 
