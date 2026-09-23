@@ -9,3 +9,5 @@ infra/.terraform/
 infra/*.tfstate
 infra/*.tfstate.*
 infra/*.tfvars
+infra/terraform.tfstate
+infra/terraform.tfstate.*

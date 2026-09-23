@@ -4,6 +4,14 @@ terraform {
       source = "hashicorp/aws"
     }
   }
+  backend "s3" {
+    bucket       = "social-app-terraform-state-117173314642"
+    key          = "production/terraform.tfstate"
+    region       = "eu-central-1"
+    profile      = "social-app"
+    use_lockfile = true
+    encrypt      = true
+  }
 }
 
 provider "aws" {
