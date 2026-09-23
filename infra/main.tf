@@ -74,9 +74,10 @@ resource "aws_db_instance" "app" {
   db_subnet_group_name   = aws_db_subnet_group.app.name
   vpc_security_group_ids = [aws_security_group.database.id]
 
-  publicly_accessible = false
-  skip_final_snapshot = true
-  deletion_protection = false
+  publicly_accessible     = false
+  skip_final_snapshot     = false
+  deletion_protection     = true
+  backup_retention_period = 1
 
   tags = {
     Name = "social-app"
@@ -444,4 +445,55 @@ resource "aws_iam_role_policy" "github_deploy" {
 
 output "github_deploy_role_arn" {
   value = aws_iam_role.github_deploy.arn
+}
+
+variable "alert_email" {
+  type = string
+}
+
+resource "aws_sns_topic" "alerts" {
+  name = "social-app-alerts"
+}
+
+resource "aws_sns_topic_subscription" "email" {
+  topic_arn = aws_sns_topic.alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
+}
+
+resource "aws_cloudwatch_metric_alarm" "ecs_running_tasks" {
+  alarm_name          = "social-app-ecs-no-running-tasks"
+  alarm_description   = "ECS service has no running tasks"
+  namespace           = "ECS"
+  metric_name         = "RunningTaskCount"
+  statistic           = "Minimum"
+  period              = 60
+  evaluation_periods  = 2
+  threshold           = 1
+  comparison_operator = "LessThanThreshold"
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.app.name
+    ServiceName = aws_ecs_service.app.name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
+  alarm_name          = "social-app-rds-high-cpu"
+  alarm_description   = "RDS CPU utilization is too high"
+  namespace           = "AWS/RDS"
+  metric_name         = "CPUUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanThreshold"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.app.id
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
 }
