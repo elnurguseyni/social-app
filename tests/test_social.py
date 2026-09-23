@@ -98,3 +98,29 @@ def test_user_can_like_and_comment(client):
     assert b"1 likes" in response.data
     assert b"Nice post!" in response.data
     assert b"taylor" in response.data
+
+def test_user_profile_shows_user_posts(client):
+    client.post(
+        "/register",
+        data={
+            "username": "profileuser",
+            "email": "profile@example.com",
+            "password": "secure-pass-123",
+        },
+    )
+
+    client.post(
+        "/posts",
+        data={"content": "A profile post"},
+    )
+
+    response = client.get("/users/profileuser")
+
+    assert response.status_code == 200
+    assert b"profileuser" in response.data
+    assert b"A profile post" in response.data
+
+def test_missing_profile_returns_404(client):
+    response = client.get("/users/unknown-user")
+
+    assert response.status_code == 404

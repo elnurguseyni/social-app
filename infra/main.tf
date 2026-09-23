@@ -154,6 +154,11 @@ resource "aws_cloudwatch_log_group" "app" {
   retention_in_days = 7
 }
 
+variable "image_tag" {
+  type    = string
+  default = "latest"
+}
+
 resource "aws_ecs_task_definition" "app" {
   family                   = "social-app"
   requires_compatibilities = ["FARGATE"]
@@ -165,7 +170,7 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = jsonencode([
     {
       name      = "social-app"
-      image     = "${data.aws_ecr_repository.app.repository_url}:latest"
+      image     = "${data.aws_ecr_repository.app.repository_url}:${var.image_tag}"
       essential = true
 
       portMappings = [
@@ -197,11 +202,6 @@ resource "aws_ecs_task_definition" "app" {
       }
     }
   ])
-}
-
-variable "secret_key" {
-  type      = string
-  sensitive = true
 }
 
 resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
@@ -267,12 +267,18 @@ resource "aws_ecs_service" "app" {
   }
 
   depends_on = [
-    aws_lb_listener.http,
+    aws_lb_listener.https,
+    aws_iam_role_policy_attachment.ecs_execution,
+    aws_iam_role_policy.ecs_secrets,
+    aws_vpc_security_group_egress_rule.ecs_all_outbound,
+    aws_vpc_security_group_egress_rule.alb_to_targets,
+    aws_vpc_security_group_ingress_rule.ecs_from_alb,
+    aws_vpc_security_group_ingress_rule.database_from_ecs,
   ]
 }
 
 output "application_url" {
-  value = "http://${aws_lb.app.dns_name}"
+  value = "https://socialapplab.xyz"
 }
 
 resource "aws_vpc_security_group_egress_rule" "ecs_all_outbound" {
@@ -357,7 +363,7 @@ resource "aws_iam_role" "github_deploy" {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         }
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:elnurguseyni@149715582/social-app@1380384550:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = "repo:elnurguseyni@149715582/social-app@1380384550:environment:production"
         }
       }
     }]
@@ -382,19 +388,29 @@ resource "aws_iam_role_policy" "github_deploy" {
         Effect = "Allow"
         Action = [
           "ecr:BatchCheckLayerAvailability",
-          "ecr:CompleteLayerUpload",
-          "ecr:InitiateLayerUpload",
-          "ecr:PutImage",
-          "ecr:UploadLayerPart",
-          "ecr:BatchCheckLayerAvailability",
           "ecr:BatchGetImage",
           "ecr:CompleteLayerUpload",
           "ecr:GetDownloadUrlForLayer",
           "ecr:InitiateLayerUpload",
           "ecr:PutImage",
-          "ecr:UploadLayerPart"
+          "ecr:UploadLayerPart",
         ]
         Resource = data.aws_ecr_repository.app.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["ecs:RegisterTaskDefinition"]
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["iam:PassRole"]
+        Resource = aws_iam_role.ecs_execution.arn
+        Condition = {
+          StringEquals = {
+            "iam:PassedToService" = "ecs-tasks.amazonaws.com"
+          }
+        }
       },
       {
         Effect = "Allow"
@@ -405,6 +421,14 @@ resource "aws_iam_role_policy" "github_deploy" {
         Resource = [
           aws_ecs_service.app.id
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:DescribeTaskDefinition",
+          "ecs:RegisterTaskDefinition"
+        ]
+        Resource = "*"
       }
     ]
   })

@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<head>
+    <title>{{ user["username"] }} - Profile</title>
+</head>
+<body>
+    <h1>{{ user["username"] }}</h1>
+
+    <h2>Posts</h2>
+
+    {% for post in posts %}
+        <article>
+            <p>{{ post["content"] }}</p>
+        </article>
+    {% else %}
+        <p>No posts yet.</p>
+    {% endfor %}
+
+    <a href="{{ url_for('home') }}">Back to feed</a>
+</body>
+</html>
