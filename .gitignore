@@ -5,3 +5,7 @@ __pycache__/
 social.db
 .env
 social.db
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/*.tfvars

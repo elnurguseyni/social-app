@@ -8,9 +8,12 @@
     <a href="/register">Create an account</a>
     <a href="/login">Log in</a>
 
+
+
     <form method="post" action="/posts">
     {% if session.get("user_id") %}
         <p><a href="/logout">Log out</a></p>
+
 
     <form method="post" action="/posts">
         <label for="content">Post</label>
@@ -23,7 +26,11 @@
 
     {% for post in posts %}
         <article>
-            <strong>{{ post['username'] }}</strong>
+            <strong>
+                <a href="{{ url_for('profile', username=post['username']) }}">
+                    {{ post['username'] }}
+                </a>
+            </strong>
             <p>{{ post['content'] }}</p>
             <p>{{ post['like_count'] }} likes</p>
             <section>
