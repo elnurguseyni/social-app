@@ -385,6 +385,13 @@ resource "aws_iam_role_policy" "github_deploy" {
           "ecr:CompleteLayerUpload",
           "ecr:InitiateLayerUpload",
           "ecr:PutImage",
+          "ecr:UploadLayerPart",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:BatchGetImage",
+          "ecr:CompleteLayerUpload",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:InitiateLayerUpload",
+          "ecr:PutImage",
           "ecr:UploadLayerPart"
         ]
         Resource = data.aws_ecr_repository.app.arn
