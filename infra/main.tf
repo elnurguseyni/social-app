@@ -176,14 +176,14 @@ resource "aws_ecs_task_definition" "app" {
         }
       ]
 
-      environment = [
+      secrets = [
         {
-          name  = "SECRET_KEY"
-          value = var.secret_key
+          name      = "SECRET_KEY"
+          valueFrom = data.aws_secretsmanager_secret.secret_key.arn
         },
         {
-          name  = "DATABASE_URL"
-          value = "postgresql://social_user:${var.db_password}@${aws_db_instance.app.address}:5432/social_db"
+          name      = "DATABASE_URL"
+          valueFrom = data.aws_secretsmanager_secret.database_url.arn
         }
       ]
 
@@ -238,11 +238,15 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.app.arn
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
   }
 }
-
 resource "aws_ecs_service" "app" {
   name            = "social-app"
   cluster         = aws_ecs_cluster.app.id
@@ -283,4 +287,49 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_targets" {
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
   description       = "Allow ALB health checks and forwarding"
+}
+
+data "aws_acm_certificate" "app" {
+  domain      = "socialapplab.xyz"
+  statuses    = ["ISSUED"]
+  most_recent = true
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.app.arn
+  port              = 443
+  protocol          = "HTTPS"
+  certificate_arn   = data.aws_acm_certificate.app.arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
+}
+
+data "aws_secretsmanager_secret" "secret_key" {
+  name = "social-app/secret-key"
+}
+
+data "aws_secretsmanager_secret" "database_url" {
+  name = "social-app/database-url"
+}
+
+resource "aws_iam_role_policy" "ecs_secrets" {
+  name = "social-app-read-secrets"
+  role = aws_iam_role.ecs_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "secretsmanager:GetSecretValue"
+      ]
+      Resource = [
+        data.aws_secretsmanager_secret.secret_key.arn,
+        data.aws_secretsmanager_secret.database_url.arn
+      ]
+    }]
+  })
 }
