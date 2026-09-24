@@ -12,7 +12,8 @@ from database import (
     add_comment,
     get_comments,
     get_like_count,
-    get_user_profile
+    get_user_profile,
+    get_connection
 )
 import sqlite3
 
@@ -151,3 +152,16 @@ def register_routes(app):
     @app.route("/health")
     def health():
         return "ok", 200
+    
+    @app.route("/ready")
+    def ready():
+        connection = get_connection()
+
+        try:
+            connection.execute("SELECT 1")
+        except Exception:
+            return "database unavailable", 503
+        finally:
+            connection.close()
+
+        return "ready", 200
