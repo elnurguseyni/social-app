@@ -51,6 +51,27 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t social-app .
+
+      - name: Report image vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          version: 'v0.74.0'
+          image-ref: 'social-app:latest'
+          scanners: 'vuln'
+          format: 'table'
+          ignore-unfixed: false
+          exit-code: '0'
+
+      - name: Block fixable high-severity image vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          version: 'v0.74.0'
+          image-ref: 'social-app:latest'
+          scanners: 'vuln'
+          format: 'table'
+          severity: 'HIGH,CRITICAL'
+          ignore-unfixed: true
+          exit-code: '1'
     
   deploy:
     needs: test

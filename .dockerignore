@@ -1,0 +1,16 @@
+.git/
+.github/
+.venv/
+venv/
+infra/
+**/.terraform/
+**/*.tfstate*
+**/*.tfvars
+**/*.tfvars.json
+.env
+.env.*
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+*.db
+.DS_Store
