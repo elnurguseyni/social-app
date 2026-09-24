@@ -130,3 +130,9 @@ def test_health_check(client):
 
     assert response.status_code == 200
     assert response.data == b"ok"
+
+def test_readiness_check(client):
+    response = client.get("/ready")
+
+    assert response.status_code == 200
+    assert response.data == b"ready"
