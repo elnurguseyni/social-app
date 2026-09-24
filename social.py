@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, current_app
 from werkzeug.security import check_password_hash
 from database import (
     add_post,
@@ -151,6 +151,7 @@ def register_routes(app):
         )
     @app.route("/health")
     def health():
+        current_app.logger.info("Health check requested.")
         return "ok", 200
     
     @app.route("/ready")

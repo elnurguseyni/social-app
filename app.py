@@ -2,15 +2,29 @@ from pathlib import Path
 import os
 from flask import Flask
 from dotenv import load_dotenv
+import logging
+import sys
 
 load_dotenv()
 
 
 DATABASE = Path(__file__).with_name("social.db")
 
+def configure_logging(app):
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s %(levelname)s %(name)s %(message)s"
+        )
+    )
+
+    app.logger.handlers.clear()
+    app.logger.addHandler(handler)
+    app.logger.setLevel(logging.INFO)
 
 def create_app(test_config=None):
     app = Flask(__name__)
+    configure_logging(app)
 
     app.config.from_mapping(
         SECRET_KEY=os.environ.get(
