@@ -1,21 +1,24 @@
-<!doctype html>
-<html>
-<head>
-    <title>Log in</title>
-</head>
-<body>
-    <h1>Log in</h1>
+{% extends "base.html" %}
 
-    <form method="post">
-        <label for="email">Email</label>
-        <input type="email" name="email" id="email" required>
+{% block title %}Log in — Social Feed{% endblock %}
 
-        <label for="password">Password</label>
-        <input type="password" name="password" id="password" required>
+{% block content %}
+    <section class="auth-card">
+        <h1>Welcome back</h1>
+        <p class="subtitle">Log in to join the conversation.</p>
 
-        <button type="submit">Log in</button>
-    </form>
+        <form method="post">
+            <label for="email">Email</label>
+            <input type="email" name="email" id="email"
+                   autocomplete="email" required>
 
-    <a href="/">Back to feed</a>
-</body>
-</html>
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password"
+                   autocomplete="current-password" required>
+
+            <button type="submit">Log in</button>
+        </form>
+
+        <p>New here? <a href="/register">Create an account</a></p>
+    </section>
+{% endblock %}

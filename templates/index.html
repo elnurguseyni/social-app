@@ -1,24 +1,6 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Social Feed</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <header class="site-header">
-        <a class="site-title" href="{{ url_for('home') }}">Social Feed</a>
+{% extends "base.html" %}
 
-        <nav aria-label="Main navigation">
-            {% if session.get("user_id") %}
-                <a href="/logout">Log out</a>
-            {% else %}
-                <a href="/login">Log in</a>
-                <a href="/register">Create account</a>
-            {% endif %}
-        </nav>
-    </header>
+{% block content %}
 
     <h1>Your community feed</h1>
     <p class="subtitle">Share something. Join the conversation.</p>
@@ -73,5 +55,4 @@
             {% endif %}
         </article>
     {% endfor %}
-</body>
-</html>
+{% endblock %}
