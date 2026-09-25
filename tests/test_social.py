@@ -136,3 +136,34 @@ def test_readiness_check(client):
 
     assert response.status_code == 200
     assert response.data == b"ready"
+
+
+@pytest.mark.parametrize(
+    "username,email",
+    [
+        ("casey", "different@example.com"),
+        ("different", "casey@example.com"),
+    ],
+)
+def test_duplicate_registration_shows_error(client, username, email):
+    client.post(
+        "/register",
+        data={
+            "username": "casey",
+            "email": "casey@example.com",
+            "password": "secure-pass-123",
+        },
+    )
+    client.get("/logout")
+
+    response = client.post(
+        "/register",
+        data={
+            "username": username,
+            "email": email,
+            "password": "another-pass-123",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"That account already exists." in response.data

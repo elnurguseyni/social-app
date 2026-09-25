@@ -15,7 +15,7 @@ from database import (
     get_user_profile,
     get_connection
 )
-import sqlite3
+from psycopg.errors import UniqueViolation
 
 def register_routes(app):
     @app.route("/")
@@ -105,7 +105,7 @@ def register_routes(app):
             else:
                 try:
                     new_user_id = create_user(username, email, password)
-                except sqlite3.IntegrityError:
+                except UniqueViolation:
                     error = "That account already exists."
                 else:
                     session["user_id"] = new_user_id
@@ -128,7 +128,10 @@ def register_routes(app):
                 session["user_id"] = user["id"]
                 return redirect(url_for("home"))
 
-            return "Invalid email or password", 401
+            return render_template(
+                "login.html",
+                error="Invalid email or password",
+            ), 401
 
         return render_template("login.html")
 
