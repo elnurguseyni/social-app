@@ -72,6 +72,34 @@ jobs:
           severity: 'HIGH,CRITICAL'
           ignore-unfixed: true
           exit-code: '1'
+      - name: Start container for smoke test
+        run: |
+          docker run -d \
+            --name social-app-smoke \
+            -p 127.0.0.1:5001:5000 \
+            social-app:latest
+
+      - name: Check container health
+        run: |
+          for attempt in {1..15}; do
+            if curl --fail --silent --show-error --max-time 2 \
+              http://127.0.0.1:5001/health; then
+              echo "Container health check passed"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Container failed to become healthy"
+          exit 1
+
+      - name: Show container logs and clean up
+        if: always()
+        run: |
+          if docker container inspect social-app-smoke > /dev/null 2>&1; then
+            docker logs social-app-smoke
+            docker rm -f social-app-smoke
+          fi
 
       - name: Save scanned image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
