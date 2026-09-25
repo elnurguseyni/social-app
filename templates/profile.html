@@ -1,10 +1,10 @@
-<!doctype html>
-<html>
-<head>
-    <title>{{ user["username"] }} - Profile</title>
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block title %}{{ user["username"] }} — Social Feed{% endblock %}
+
+{% block content %}
     <h1>{{ user["username"] }}</h1>
+    <p class="subtitle">Posts shared with the community.</p>
 
     <h2>Posts</h2>
 
@@ -16,6 +16,5 @@
         <p>No posts yet.</p>
     {% endfor %}
 
-    <a href="{{ url_for('home') }}">Back to feed</a>
-</body>
-</html>
+    <p><a href="{{ url_for('home') }}">Back to feed</a></p>
+{% endblock %}

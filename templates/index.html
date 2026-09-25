@@ -1,19 +1,11 @@
-<!doctype html>
-<html>
-<head>
-    <title>Social Feed</title>
-</head>
-<body>
-    <h1>Social Feed</h1>
-    <a href="/register">Create an account</a>
-    <a href="/login">Log in</a>
+{% extends "base.html" %}
 
+{% block content %}
 
+    <h1>Your community feed</h1>
+    <p class="subtitle">Share something. Join the conversation.</p>
 
-    <form method="post" action="/posts">
     {% if session.get("user_id") %}
-        <p><a href="/logout">Log out</a></p>
-
 
     <form method="post" action="/posts">
         <label for="content">Post</label>
@@ -63,5 +55,4 @@
             {% endif %}
         </article>
     {% endfor %}
-</body>
-</html>
+{% endblock %}
