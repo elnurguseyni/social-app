@@ -19,14 +19,14 @@
 
     {% for post in posts %}
 
-        <article>
+        <article id="post-{{ post['id'] }}">
             <strong>
                 <a href="{{ url_for('profile', username=post['username']) }}">
                     {{ post['username'] }}
                 </a>
             </strong>
             <p>{{ post['content'] }}</p>
-            <p>{{ post['like_count'] }} likes</p>
+            <p class="like-count" aria-live="polite">{{ post['like_count'] }} likes</p>
             <section>
                 <h3>Comments</h3>
 
@@ -48,7 +48,9 @@
             </section>
 
             {% if session.get("user_id") %}
-                <form method="post" action="{{ url_for('like', post_id=post['id']) }}">
+                <form method="post"
+                    class="like-form"
+                    action="{{ url_for('like', post_id=post['id']) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     {% if post['is_liked'] %}
                         <button type="submit">Unlike</button>

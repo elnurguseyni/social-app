@@ -6,6 +6,7 @@
     <title>{% block title %}Social Feed{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+    <script src="{{ url_for('static', filename='feed.js') }}" defer></script>
 <body>
     <header class="site-header">
         <a class="site-title" href="{{ url_for('home') }}">Social Feed</a>
