@@ -4,8 +4,11 @@ from flask import Flask
 from dotenv import load_dotenv
 import logging
 import sys
+from flask_wtf.csrf import CSRFProtect
 
 load_dotenv()
+
+csrf = CSRFProtect()
 
 
 DATABASE = Path(__file__).with_name("social.db")
@@ -40,7 +43,8 @@ def create_app(test_config=None):
     if test_config is not None:
         app.config.update(test_config)
 
+    csrf.init_app(app)
+
     from social import register_routes
     register_routes(app)
-
     return app

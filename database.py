@@ -37,6 +37,36 @@ def add_post(content, user_id):
 
     return row["id"]
 
+def delete_post(post_id, user_id):
+    with get_connection() as connection:
+        post = connection.execute(
+            """
+            SELECT id
+            FROM posts
+            WHERE id = %s AND user_id = %s
+            FOR UPDATE
+            """,
+            (post_id, user_id),
+        ).fetchone()
+
+        if post is None:
+            return False
+
+        connection.execute(
+            "DELETE FROM likes WHERE post_id = %s",
+            (post_id,),
+        )
+        connection.execute(
+            "DELETE FROM comments WHERE post_id = %s",
+            (post_id,),
+        )
+        connection.execute(
+            "DELETE FROM posts WHERE id = %s AND user_id = %s",
+            (post_id, user_id),
+        )
+
+    return True
+
 def get_posts(user_id=None):
     connection = get_connection()
 
@@ -44,6 +74,7 @@ def get_posts(user_id=None):
         """
         SELECT
             posts.id,
+            posts.user_id,
             posts.content,
             users.username,
             COUNT(likes.post_id) AS like_count,
@@ -136,7 +167,7 @@ def migrate_likes_table():
             PRIMARY KEY (user_id, post_id),
             FOREIGN KEY (user_id) REFERENCES users (id),
             FOREIGN KEY (post_id) REFERENCES posts (id)
-        )
+        );
         """
     )
 
@@ -195,7 +226,7 @@ def migrate_comments_table():
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id),
             FOREIGN KEY (post_id) REFERENCES posts (id)
-        )
+        );
         """
     )
 
