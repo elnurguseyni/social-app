@@ -206,9 +206,9 @@ def get_like_count(post_id):
     connection = get_connection()
 
     count = connection.execute(
-        "SELECT COUNT(*) FROM likes WHERE post_id = %s",
+        "SELECT COUNT(*) AS like_count FROM likes WHERE post_id = %s",
         (post_id,),
-    ).fetchone()[0]
+    ).fetchone()["like_count"]
 
     connection.close()
     return count

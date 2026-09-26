@@ -10,7 +10,7 @@ from database import (
     like_post,
     delete_post,
 )
-def post_with_csrf(client, path, data=None):
+def post_with_csrf(client, path, data=None, headers=None):
     page = client.get("/login")
     assert page.status_code == 200
 
@@ -23,7 +23,7 @@ def post_with_csrf(client, path, data=None):
     form_data = dict(data or {})
     form_data["csrf_token"] = match.group(1)
 
-    return client.post(path, data=form_data)
+    return client.post(path, data=form_data, headers=headers)
 
 @pytest.fixture
 def client():
@@ -300,3 +300,33 @@ def test_delete_route_checks_session_identity(client, visitor):
             ).fetchone()
 
     assert (post is None) == (visitor == "owner")
+
+def test_like_toggle_returns_json(client):
+    with client.application.app_context():
+        user_id = create_user(
+            "casey", "casey@example.com", "secure-pass-123"
+        )
+        post_id = add_post("A post to like", user_id)
+
+    with client.session_transaction() as session:
+        session["user_id"] = user_id
+
+    url = f"/posts/{post_id}/like"
+    headers = {"Accept": "application/json"}
+
+    response = post_with_csrf(client, url, headers=headers)
+
+    assert response.status_code == 200
+    assert response.is_json
+    assert response.get_json() == {
+        "liked": True,
+        "like_count": 1,
+    }
+
+    response = post_with_csrf(client, url, headers=headers)
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "liked": False,
+        "like_count": 0,
+    }

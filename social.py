@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, current_app
+from flask import Flask, render_template, request, redirect, url_for, session, current_app, jsonify
 from werkzeug.security import check_password_hash
 from database import (
     add_post,
@@ -50,7 +50,7 @@ def register_routes(app):
 
         add_comment(content, user_id, post_id)
 
-        return redirect(url_for("home"))
+        return redirect(url_for("home", _anchor=f"post-{post_id}"))
 
     @app.route("/posts", methods=["POST"])
     def create_post():
@@ -100,7 +100,12 @@ def register_routes(app):
         else:
             like_post(user_id, post_id)
 
-        return redirect(url_for("home"))
+        if request.accept_mimetypes.best == "application/json":
+            return jsonify(
+                liked=not selected_post["is_liked"],
+                like_count=get_like_count(post_id),
+            )
+        return redirect(url_for("home", _anchor=f"post-{post_id}"))
 
     @app.route("/register", methods=["GET", "POST"])
     def register():
