@@ -88,7 +88,7 @@ def get_posts(user_id=None):
         JOIN users ON posts.user_id = users.id
         LEFT JOIN likes ON posts.id = likes.post_id
         GROUP BY posts.id, posts.content, users.username
-        ORDER BY posts.id
+        ORDER BY posts.id DESC
         """,
         (user_id,),
     ).fetchall()
