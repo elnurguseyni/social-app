@@ -19,15 +19,6 @@
 
     {% for post in posts %}
 
-    {% if session.get("user_id") == post["user_id"] %}
-    <form method="post"
-          action="{{ url_for('remove_post', post_id=post['id']) }}"
-          onsubmit="return confirm('Delete this post and its comments? This cannot be undone.');">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="button-danger">Delete post</button>
-    </form>
-    {% endif %}
-
         <article>
             <strong>
                 <a href="{{ url_for('profile', username=post['username']) }}">
@@ -66,6 +57,14 @@
                     {% endif %}
                 </form>
             {% endif %}
+                {% if session.get("user_id") == post["user_id"] %}
+                <form method="post"
+                    action="{{ url_for('remove_post', post_id=post['id']) }}"
+                    onsubmit="return confirm('Delete this post and its comments? This cannot be undone.');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="button-danger">Delete post</button>
+                </form>
+                {% endif %}
         </article>
     {% endfor %}
 {% endblock %}
