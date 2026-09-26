@@ -12,7 +12,10 @@
 
         <nav aria-label="Main navigation">
             {% if session.get("user_id") %}
-                <a href="/logout">Log out</a>
+                <form method="post" action="{{ url_for('logout') }}" class="logout-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="logout-button">Log out</button>
+                </form>
             {% else %}
                 <a href="/login">Log in</a>
                 <a href="/register">Create account</a>

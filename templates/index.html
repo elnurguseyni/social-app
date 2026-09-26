@@ -8,6 +8,7 @@
     {% if session.get("user_id") %}
 
     <form method="post" action="/posts">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="content">Post</label>
         <textarea name="content" id="content" required></textarea>
         <button type="submit">Publish</button>
@@ -17,6 +18,16 @@
     {% endif %}
 
     {% for post in posts %}
+
+    {% if session.get("user_id") == post["user_id"] %}
+    <form method="post"
+          action="{{ url_for('remove_post', post_id=post['id']) }}"
+          onsubmit="return confirm('Delete this post and its comments? This cannot be undone.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="button-danger">Delete post</button>
+    </form>
+    {% endif %}
+
         <article>
             <strong>
                 <a href="{{ url_for('profile', username=post['username']) }}">
@@ -38,6 +49,7 @@
             {% if session.get("user_id") %}
                 <form method="post"
                     action="{{ url_for('create_comment', post_id=post['id']) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <textarea name="content" required></textarea>
                     <button type="submit">Comment</button>
                 </form>
@@ -46,6 +58,7 @@
 
             {% if session.get("user_id") %}
                 <form method="post" action="{{ url_for('like', post_id=post['id']) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     {% if post['is_liked'] %}
                         <button type="submit">Unlike</button>
                     {% else %}

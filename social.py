@@ -13,7 +13,8 @@ from database import (
     get_comments,
     get_like_count,
     get_user_profile,
-    get_connection
+    get_connection,
+    delete_post,
 )
 from psycopg.errors import UniqueViolation
 
@@ -64,6 +65,20 @@ def register_routes(app):
             return "Post content is required", 400
 
         add_post(content, user_id)
+
+        return redirect(url_for("home"))
+
+    @app.route("/posts/<int:post_id>/delete", methods=["POST"])
+    def remove_post(post_id):
+        user_id = session.get("user_id")
+
+        if user_id is None:
+            return redirect(url_for("login"))
+
+        deleted = delete_post(post_id, user_id)
+
+        if not deleted:
+            return "Post not found or deletion not permitted", 404
 
         return redirect(url_for("home"))
 
@@ -135,7 +150,7 @@ def register_routes(app):
 
         return render_template("login.html")
 
-    @app.route("/logout")
+    @app.route("/logout", methods=["POST"])
     def logout():
         session.clear()
         return redirect(url_for("home"))

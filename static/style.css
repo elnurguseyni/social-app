@@ -149,3 +149,30 @@ article section {
     background: #fff1f1;
     color: #9b1c1c;
 }
+
+.button-danger {
+    background: #b42318;
+}
+
+.button-danger:hover {
+    background: #8f1c13;
+}
+
+.logout-form {
+    margin: 0;
+}
+
+.logout-button {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: #2456c5;
+    font-weight: 400;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.logout-button:hover {
+    background: transparent;
+    color: #1b4299;
+}
