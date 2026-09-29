@@ -410,7 +410,7 @@ resource "aws_scheduler_schedule" "app" {
   group_name                   = aws_scheduler_schedule_group.app.name
   schedule_expression          = each.value.expression
   schedule_expression_timezone = "Europe/Vilnius"
-  state                        = "ENABLED"
+  state = each.key == "evening" ? "ENABLED" : "DISABLED"
 
   flexible_time_window {
     mode = "OFF"
