@@ -50,6 +50,13 @@ while true; do
       ;;
     *)
       echo "Workflow ended with unexpected or unsuccessful status: $status" >&2
+        aws stepfunctions describe-execution \
+        --execution-arn "$execution_arn" \
+        --region eu-central-1 \
+        --profile social-app \
+        --query '{Status:status,Error:error,Cause:cause}' \
+        --output json \
+        --no-cli-pager >&2
       exit 1
       ;;
   esac
