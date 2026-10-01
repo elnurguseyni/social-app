@@ -50,6 +50,11 @@ def register_routes(app):
 
         add_comment(content, user_id, post_id)
 
+        if request.accept_mimetypes.best == "application/json":
+            return jsonify(
+                comments=get_comments(post_id),
+        ), 201
+
         return redirect(url_for("home", _anchor=f"post-{post_id}"))
 
     @app.route("/posts", methods=["POST"])

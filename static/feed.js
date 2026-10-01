@@ -37,3 +37,55 @@ document.querySelectorAll(".like-form").forEach((form) => {
         }
     });
 });
+
+document.querySelectorAll(".comment-form").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const button = form.querySelector("button");
+        const textarea = form.querySelector("textarea");
+        const list = form.closest("article").querySelector(".comment-list");
+
+        if (button.disabled) return;
+        button.disabled = true;
+        textarea.readOnly = true;
+
+        try {
+            const response = await fetch(form.action, {
+                method: "POST",
+                headers: {
+                    Accept: "application/json",
+                },
+                body: new FormData(form),
+            });
+
+            if (
+                !response.ok ||
+                response.redirected ||
+                !response.headers.get("content-type")?.includes("application/json")
+            ) {
+                throw new Error("Unexpected response");
+            }
+
+            const result = await response.json();
+            const fragment = document.createDocumentFragment();
+
+            result.comments.forEach((comment) => {
+                const paragraph = document.createElement("p");
+                const author = document.createElement("strong");
+
+                author.textContent = comment.username;
+                paragraph.append(author, `: ${comment.content}`);
+                fragment.append(paragraph);
+            });
+
+            list.replaceChildren(fragment);
+            textarea.value = "";
+        } catch (error) {
+            alert("Could not confirm the comment was saved. Refresh the page before trying again to avoid posting it twice.");
+        } finally {
+            button.disabled = false;
+            textarea.readOnly = false;
+        }
+    });
+});
