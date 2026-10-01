@@ -1,5 +1,13 @@
 FROM python:3.12-slim
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade \
+        libpcre2-8-0 \
+        libssl3t64 \
+        openssl \
+        openssl-provider-legacy \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY requirements.txt .

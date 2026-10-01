@@ -207,3 +207,74 @@ jobs:
             --task-definition "$TASK_DEFINITION_ARN" \
             --query 'service.serviceName' \
             --output text
+
+      - name: Read ECS desired count
+        run: |
+          DESIRED_COUNT=$(aws ecs describe-services \
+            --cluster social-app \
+            --services social-app \
+            --query 'services[0].desiredCount' \
+            --output text)
+
+          if [[ ! "$DESIRED_COUNT" =~ ^[0-9]+$ ]]; then
+            echo "Could not read a valid ECS desired count." >&2
+            exit 1
+          fi
+
+          echo "ECS desired count: $DESIRED_COUNT"
+          echo "ECS_DESIRED_COUNT=$DESIRED_COUNT" >> "$GITHUB_ENV"
+
+      - name: Wait for ECS service stability
+        if: env.ECS_DESIRED_COUNT != '0'
+        run: |
+          aws ecs wait services-stable \
+            --cluster social-app \
+            --services social-app
+
+      - name: Verify deployment result
+        run: |
+          aws ecs describe-services \
+            --cluster social-app \
+            --services social-app \
+            --output json > service-result.json
+
+          jq -e --arg expected "$TASK_DEFINITION_ARN" '
+            (.failures | length) == 0 and
+            (.services | length) == 1 and
+            (.services[0].status == "ACTIVE") and
+            (.services[0].taskDefinition == $expected)
+          ' service-result.json > /dev/null || {
+            echo "Service is missing, inactive, or using an unexpected task definition." >&2
+            exit 1
+          }
+
+          DESIRED_COUNT=$(jq -r '.services[0].desiredCount' service-result.json)
+
+          if [[ "$DESIRED_COUNT" == "0" ]]; then
+            {
+              echo "### Release prepared; runtime verification deferred"
+              echo "ECS is scaled to zero. The service points to the new revision."
+              echo "Task definition: $TASK_DEFINITION_ARN"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          jq -e --arg expected "$TASK_DEFINITION_ARN" '
+            .services[0] |
+            (.desiredCount > 0) and
+            (.runningCount == .desiredCount) and
+            (.pendingCount == 0) and
+            (.deployments | length == 1) and
+            (.deployments[0].taskDefinition == $expected) and
+            (.deployments[0].rolloutState == "COMPLETED")
+          ' service-result.json > /dev/null || {
+            echo "The intended deployment has not completed with the expected task count." >&2
+            exit 1
+          }
+
+          {
+            echo "### ECS deployment verified"
+            echo "The intended revision completed its ECS rollout."
+            echo "Running tasks: $DESIRED_COUNT"
+            echo "Task definition: $TASK_DEFINITION_ARN"
+          } >> "$GITHUB_STEP_SUMMARY"
