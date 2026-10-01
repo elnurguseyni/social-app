@@ -330,3 +330,34 @@ def test_like_toggle_returns_json(client):
         "liked": False,
         "like_count": 0,
     }
+
+def test_comment_returns_json(client):
+    with client.application.app_context():
+        user_id = create_user(
+            "casey", "casey@example.com", "secure-pass-123"
+        )
+        post_id = add_post("A post to comment on", user_id)
+
+    with client.session_transaction() as session:
+        session["user_id"] = user_id
+
+    response = post_with_csrf(
+        client,
+        f"/posts/{post_id}/comments",
+        data={"content": "  My new comment  "},
+        headers={"Accept": "application/json"},
+    )
+
+    assert response.status_code == 201
+    assert response.is_json
+    assert response.get_json() == {
+        "comments": [
+            {
+                "username": "casey",
+                "content": "My new comment",
+            }
+        ]
+    }
+
+    page = client.get("/")
+    assert b"My new comment" in page.data
