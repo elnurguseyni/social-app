@@ -89,3 +89,46 @@ document.querySelectorAll(".comment-form").forEach((form) => {
         }
     });
 });
+
+document.querySelectorAll(".edit-form").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const button = form.querySelector("button");
+        const textarea = form.querySelector("textarea");
+        const card = form.closest("article");
+        const postContent = card.querySelector(".post-content");
+
+        if (button.disabled) return;
+        button.disabled = true;
+        textarea.readOnly = true;
+
+        try {
+            const response = await fetch(form.action, {
+                method: "POST",
+                headers: {
+                    Accept: "application/json",
+                },
+                body: new FormData(form),
+            });
+
+            if (
+                !response.ok ||
+                response.redirected ||
+                !response.headers.get("content-type")?.includes("application/json")
+            ) {
+                throw new Error("Unexpected response");
+            }
+
+            const result = await response.json();
+
+            postContent.textContent = result.content;
+            textarea.value = result.content;
+        } catch (error) {
+            alert("Could not confirm the edit was saved. Refresh the page to check the current post.");
+        } finally {
+            button.disabled = false;
+            textarea.readOnly = false;
+        }
+    });
+});

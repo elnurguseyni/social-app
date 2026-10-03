@@ -15,6 +15,7 @@ from database import (
     get_user_profile,
     get_connection,
     delete_post,
+    update_post,
 )
 from psycopg.errors import UniqueViolation
 
@@ -86,6 +87,31 @@ def register_routes(app):
             return "Post not found or deletion not permitted", 404
 
         return redirect(url_for("home"))
+
+    @app.route("/posts/<int:post_id>/edit", methods=["POST"])
+    def edit_post(post_id):
+        user_id = session.get("user_id")
+
+        if user_id is None:
+            return redirect(url_for("login"))
+
+        content = request.form.get("content", "").strip()
+
+        if not content:
+            return "Post content is required", 400
+
+        updated = update_post(post_id, user_id, content)
+
+        if not updated:
+            return "Post not found or editing not permitted", 404
+
+        if request.accept_mimetypes.best == "application/json":
+            return jsonify(
+                post_id=post_id,
+                content=content,
+            )
+
+        return redirect(url_for("home", _anchor=f"post-{post_id}"))
 
 
     @app.route("/posts/<int:post_id>/like", methods=["POST"])

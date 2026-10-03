@@ -300,6 +300,20 @@ def get_user_profile(username):
     finally:
         connection.close()
 
+def update_post(post_id, user_id, content):
+    with get_connection() as connection:
+        post = connection.execute(
+            """
+            UPDATE posts
+            SET content = %s
+            WHERE id = %s AND user_id = %s
+            RETURNING id
+            """,
+            (content, post_id, user_id),
+        ).fetchone()
+
+    return post is not None
+
 def initialize_database():
     connection = get_connection()
 
