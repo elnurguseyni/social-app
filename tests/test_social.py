@@ -9,6 +9,7 @@ from database import (
     add_comment,
     like_post,
     delete_post,
+    update_post,
 )
 def post_with_csrf(client, path, data=None, headers=None):
     page = client.get("/login")
@@ -361,3 +362,125 @@ def test_comment_returns_json(client):
 
     page = client.get("/")
     assert b"My new comment" in page.data
+
+@pytest.mark.parametrize("is_owner", [True, False])
+def test_post_update_checks_ownership(client, is_owner):
+    with client.application.app_context():
+        owner_id = create_user(
+            "owner", "owner@example.com", "secure-pass-123"
+        )
+        other_id = create_user(
+            "other", "other@example.com", "secure-pass-456"
+        )
+        post_id = add_post("Original content", owner_id)
+
+        requesting_user = owner_id if is_owner else other_id
+        result = update_post(post_id, requesting_user, "Edited content")
+
+        assert result is is_owner
+
+        with get_connection() as connection:
+            post = connection.execute(
+                "SELECT content, user_id FROM posts WHERE id = %s",
+                (post_id,),
+            ).fetchone()
+
+        expected_content = "Edited content" if is_owner else "Original content"
+        assert post["content"] == expected_content
+        assert post["user_id"] == owner_id
+
+def test_edit_rejects_forged_owner_id(client):
+    with client.application.app_context():
+        owner_id = create_user(
+            "owner", "owner@example.com", "secure-pass-123"
+        )
+        other_id = create_user(
+            "other", "other@example.com", "secure-pass-456"
+        )
+        post_id = add_post("Original content", owner_id)
+
+    with client.session_transaction() as session:
+        session["user_id"] = other_id
+
+    response = post_with_csrf(
+        client,
+        f"/posts/{post_id}/edit",
+        data={
+            "content": "Unauthorized edit",
+            "user_id": owner_id,
+        },
+    )
+
+    assert response.status_code == 404
+
+    with client.application.app_context():
+        with get_connection() as connection:
+            post = connection.execute(
+                "SELECT content, user_id FROM posts WHERE id = %s",
+                (post_id,),
+            ).fetchone()
+
+    assert post["content"] == "Original content"
+    assert post["user_id"] == owner_id
+
+
+@pytest.mark.parametrize(
+    "content,expected_status,expected_content",
+    [
+        ("  Edited text  ", 302, "Edited text"),
+        ("", 400, "Original content"),
+        ("   ", 400, "Original content"),
+    ],
+)
+def test_owner_edit_validates_content(
+    client, content, expected_status, expected_content
+):
+    with client.application.app_context():
+        owner_id = create_user(
+            "owner", "owner@example.com", "secure-pass-123"
+        )
+        post_id = add_post("Original content", owner_id)
+
+    with client.session_transaction() as session:
+        session["user_id"] = owner_id
+
+    response = post_with_csrf(
+        client,
+        f"/posts/{post_id}/edit",
+        data={"content": content},
+    )
+
+    assert response.status_code == expected_status
+
+    with client.application.app_context():
+        with get_connection() as connection:
+            post = connection.execute(
+                "SELECT content FROM posts WHERE id = %s",
+                (post_id,),
+            ).fetchone()
+
+    assert post["content"] == expected_content
+
+def test_edit_returns_json(client):
+    with client.application.app_context():
+        owner_id = create_user(
+            "owner", "owner@example.com", "secure-pass-123"
+        )
+        post_id = add_post("Original content", owner_id)
+
+    with client.session_transaction() as session:
+        session["user_id"] = owner_id
+
+    response = post_with_csrf(
+        client,
+        f"/posts/{post_id}/edit",
+        data={"content": "  Updated through JSON  "},
+        headers={"Accept": "application/json"},
+    )
+
+    assert response.status_code == 200
+    assert response.is_json
+    assert response.get_json() == {
+        "post_id": post_id,
+        "content": "Updated through JSON",
+    }
