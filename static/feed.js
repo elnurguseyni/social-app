@@ -1,3 +1,23 @@
+async function submitForm(form) {
+    const response = await fetch(form.action, {
+        method: "POST",
+        headers: {
+            Accept: "application/json",
+        },
+        body: new FormData(form),
+    });
+
+    if (
+        !response.ok ||
+        response.redirected ||
+        !response.headers.get("content-type")?.includes("application/json")
+    ) {
+        throw new Error("Unexpected response");
+    }
+
+    return response.json();
+}
+
 document.querySelectorAll(".like-form").forEach((form) => {
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -10,24 +30,7 @@ document.querySelectorAll(".like-form").forEach((form) => {
         button.disabled = true;
 
         try {
-            const response = await fetch(form.action, {
-                method: "POST",
-                headers: {
-                    Accept: "application/json",
-                },
-                body: new FormData(form),
-            });
-
-            if (
-                !response.ok ||
-                response.redirected ||
-                !response.headers.get("content-type")?.includes("application/json")
-            ) {
-                throw new Error("Unexpected response");
-            }
-
-            const result = await response.json();
-
+            const result = await submitForm(form);
             button.textContent = result.liked ? "Unlike" : "Like";
             count.textContent = `${result.like_count} likes`;
         } catch (error) {
@@ -51,23 +54,7 @@ document.querySelectorAll(".comment-form").forEach((form) => {
         textarea.readOnly = true;
 
         try {
-            const response = await fetch(form.action, {
-                method: "POST",
-                headers: {
-                    Accept: "application/json",
-                },
-                body: new FormData(form),
-            });
-
-            if (
-                !response.ok ||
-                response.redirected ||
-                !response.headers.get("content-type")?.includes("application/json")
-            ) {
-                throw new Error("Unexpected response");
-            }
-
-            const result = await response.json();
+            const result = await submitForm(form);
             const fragment = document.createDocumentFragment();
 
             result.comments.forEach((comment) => {
@@ -104,24 +91,7 @@ document.querySelectorAll(".edit-form").forEach((form) => {
         textarea.readOnly = true;
 
         try {
-            const response = await fetch(form.action, {
-                method: "POST",
-                headers: {
-                    Accept: "application/json",
-                },
-                body: new FormData(form),
-            });
-
-            if (
-                !response.ok ||
-                response.redirected ||
-                !response.headers.get("content-type")?.includes("application/json")
-            ) {
-                throw new Error("Unexpected response");
-            }
-
-            const result = await response.json();
-
+            const result = await submitForm(form);
             postContent.textContent = result.content;
             textarea.value = result.content;
         } catch (error) {
