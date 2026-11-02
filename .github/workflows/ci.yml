@@ -47,7 +47,21 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt -r requirements-test.txt
+
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Create browser test database
+        env:
+          PGPASSWORD: local_password
+        run: |
+          psql \
+            -h localhost \
+            -U social_user \
+            -d postgres \
+            -v ON_ERROR_STOP=1 \
+            -c "CREATE DATABASE social_browser_test;"
       
       - name: Check dependencies for known vulnerabilities
         run: |
